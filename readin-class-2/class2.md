@@ -1,6 +1,6 @@
 # Reading subjects :
 
-|subject|
+|Subject|
 |:--------------------|
 |Middleware|
 |Request Object|
@@ -68,4 +68,15 @@ Automated tests run as regression tests.
 User accepts the software (Acceptance and Quality Criteria met)
 
 
+*********
 
+Which 3 things had you heard about previously and now have better clarity on?
+on BDT
+Which 3 things are you hoping to learn more about in the upcoming lecture/demo?
+
+the midleware .
+
+
+What are you most excited about trying to implement or see how it works?
+
+I like testing so i would like to do a BDT or learn more about TDD.
