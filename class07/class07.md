@@ -3,10 +3,7 @@
 |Subject|
 |:--------------------|
 |Json Web Token|
-|Functional Programming|
-|object-oriented programming (OOP)|
-|Clases|
-|Jest|
+
 
 *********
 
