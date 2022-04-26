@@ -43,5 +43,6 @@ Reporting and analytics. Tracking usage metrics is a critical part of API manage
 
 This data helps organizations measure how their API programs are performing.
 
-API lifecycle management. The API lifecycle describe the steps in the development and maintenance of an API. It is a process that begins with the design of the API and continues with the development, testing and deployment. The lifecycle ends with the retirement of the API. Various tools and best practices can help with API lifecycle management
+API lifecycle management. The API lifecycle describe the steps in the development and maintenance of an API. It is a process that begins with the design of the API and continues with the development, testing and deployment. The lifecycle ends with the retirement of the API. Various tools and best practices can help with API lifecycle managementS 
+   
 
