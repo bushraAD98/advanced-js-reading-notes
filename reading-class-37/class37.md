@@ -1,93 +1,64 @@
-# Redux - Asynchronous Actions :
+# How to use combineReducers() In Redux and React
 
-Dispatching Async Actions using Redux
-Redux looked like a godsend when we started migrating old code to this new feature. It made the code look slicker, it was extremely intuitive to understand and reduced drastically the number of props floating around the application. But it was not perfect. The very nature of reducers poses a problem when you’re encompassing the fetching of information in them, and that’s something the Redux community has been tackling for a very long time
+The most common state shape for a Redux app is a plain Javascript object containing "slices" of domain-specific data at each top-level key. Similarly, the most common approach to writing reducer logic for that state shape is to have "slice reducer" functions, each with the same (state, action) signature, and each responsible for managing all updates to that specific slice of state. Multiple slice reducers can respond to the same action, independently update their own slice as needed, and the updated slices are combined into the new state object.
 
-## How to handle Async Actions in Redux
-Reducers, in theory, are pure functions, according to the documentation itself.
+Because this pattern is so common, Redux provides the combineReducers utility to implement that behavior. It is an example of a higher-order reducer, which takes an object full of slice reducer functions, and returns a new reducer function.
 
-Given the same arguments, it should calculate the next state and return it. No surprises. No side effects. No API calls. No mutations. Just a calculation.
+There are several important ideas to be aware of when using combineReducers:
 
-So, where should you apply async calls in Redux?
-The Actions should be the immediate answer, but the basic implementation of actions is nothing more than a plain JavaScript object you use to pass information to your store. For this reason, the community came up with several middlewares that wrap all the logic into functions instead, which mimic the natural behavior of the store.
+First and foremost, combineReducers is simply a utility function to simplify the most common use case when writing Redux reducers. You are not required to use it in your own application, and it does not handle every possible scenario. It is entirely possible to write reducer logic without using it, and it is quite common to need to write custom reducer logic for cases that combineReducer does not handle. (See Beyond combineReducers for examples and suggestions.)
+While Redux itself is not opinionated about how your state is organized, combineReducers enforces several rules to help users avoid common errors. (See combineReducers for details.)
+One frequently asked question is whether Redux "calls all reducers" when dispatching an action. Since there really is only one root reducer function, the default answer is "no, it does not". However, combineReducers has specific behavior that does work that way. In order to assemble the new state tree, combineReducers will call each slice reducer with its current slice of state and the current action, giving the slice reducer a chance to respond and update its slice of state if needed. So, in that sense, using combineReducers does "call all reducers", or at least all of the slice reducers it is wrapping.
+You can use it at all levels of your reducer structure, not just to create the root reducer. It's very common to have multiple combined reducers in various places, which are composed together to create the root reducer.
+Defining State Shape #
+There are two ways to define the initial shape and contents of your store's state. First, the createStore function can take preloadedState as its second argument. This is primarily intended for initializing the store with state that was previously persisted elsewhere, such as the browser's localStorage. The other way is for the root reducer to return the initial state value when the state argument is undefined. These two approaches are described in more detail in Initializing State, but there are some additional concerns to be aware of when using combineReducers.
 
+combineReducers takes an object full of slice reducer functions, and creates a function that outputs a corresponding state object with the same keys. This means that if no preloaded state is provided to createStore, the naming of the keys in the input slice reducer object will define the naming of the keys in the output state object. The correlation between these names is not always apparent, especially when using ES6 features such as default module exports and object literal shorthands.
 
-## Which Async Redux Middleware should you pick?
-As with everything in programming, there isn't a one size fits all solution. So you should definitely research which middleware fits your problem the best. The first solution suggested by the documentation is Redux Thunk. This middleware allows you to create Actions as more than plain objects. These new Actions can dispatch other Actions, other Thunks and also perform async operations inside them. But recently, other middlewares have started gaining traction, like Redux-Saga and Redux-Observable have different use cases but they all share one thing, which is a very active repository and thriving community behind them.
+Here's an example of how use of ES6 object literal shorthand with combineReducers can define the state shape:
 
+// reducers.js
+export default theDefaultReducer = (state = 0, action) => state;
 
-## Why Redux Thunk?
-Out of all the popular solutions to this issue, Redux Thunk is the easiest one to understand. It’s also fairly accessible in technical terms and, at this time, it’s the suggested way to approach this situation according to the Redux documentation
+export const firstNamedReducer = (state = 1, action) => state;
 
-
-## How to implement Redux Thunk?
-We start here:
-npx react-create-app my-app --template redux
-
-This will get you a fresh new app using React with all the Redux modules we needed to do this short tutorial. We will also be working with the WoofBot API service.
-
-The first thing to do is to set up a dog slice, where you’ll keep all the information related to your dog API response.
+export const secondNamedReducer = (state = 2, action) => state;
 
 
-![img](https://www.imaginarycloud.com/blog/content/images/2020/07/Store-slice.png)
+// rootReducer.js
+import {combineReducers, createStore} from "redux";
 
+import theDefaultReducer, {firstNamedReducer, secondNamedReducer} from "./reducers";
 
-We have our Actions:
+// Use ES6 object literal shorthand syntax to define the object shape
+const rootReducer = combineReducers({
+    theDefaultReducer,
+    firstNamedReducer,
+    secondNamedReducer
+});
 
-uploadBreeds: Will be used as a dump of all the payload information regarding the dog breeds.
+const store = createStore(rootReducer);
+console.log(store.getState());
+// {theDefaultReducer : 0, firstNamedReducer : 1, secondNamedReducer : 2}
+Notice that because we used the ES6 shorthand for defining an object literal, the key names in the resulting state are the same as the variable names from the imports. This may not always be the desired behavior, and is often a cause of confusion for those who aren't as familiar with ES6 syntax.
 
-uploadBreedImage: Will be used to uploading certain breeds specific images, if needed.
+Also, the resulting names are a bit odd. It's generally not a good practice to actually include words like "reducer" in your state key names - the keys should simply reflect the domain or type of data they hold. This means we should either explicitly specify the names of the keys in the slice reducer object to define the keys in the output state object, or carefully rename the variables for the imported slice reducers to set up the keys when using the shorthand object literal syntax.
 
-loadingState: Will be used to updating the status of the request.
+A better usage might look like:
 
-and Selectors:
+import {combineReducers, createStore} from "redux";
 
-selectBreeds: Returns an array of all the breeds in store.
+// Rename the default import to whatever name we want. We can also rename a named import.
+import defaultState, {firstNamedReducer, secondNamedReducer as secondState} from "./reducers";
 
-selectBreedImage: Returns the image for a specific breed.
+const rootReducer = combineReducers({
+    defaultState,                   // key name same as the carefully renamed default export
+    firstState : firstNamedReducer, // specific key name instead of the variable name
+    secondState,                    // key name same as the carefully renamed named export
+});
 
-isLoading: Returns the status of the request
+const reducerInitializedStore = createStore(rootReducer);
+console.log(reducerInitializedStore.getState());
+// {defaultState : 0, firstState : 1, secondState : 2}
+This state shape better reflects the data involved, because we took care to set up the keys we passed to combineReducers.
 
-
-How would you normally implement this back and forth with the API and the store? I would fit it all into a useEffect hook, similar to this one:
-
-
-![mg](https://www.imaginarycloud.com/blog/content/images/2020/06/useEffect-2.png)
-
-
-What are we doing here?
-
-Component is mounted
-Loading State is set to Request with one dispatch of an action
-Data is requested using a simple fetch
-Data is received from the API and processed to the object we want
-Breed information in the slice is set to what we got using another dispatch
-Loading State is set back to Waiting
-
-Alternatively, we might receive an error from the API which will stop the flow in step 4 and set the Loading State to Error.
-
-This works, and that’s ok. But it also has several downsides. Mainly, it puts too much logic in the component. It’s not reusable, and if you want to access this information somewhere else, you’ll always need to make sure this component is loaded first
-
-
-Now with Thunks:
-
-npm install --save redux-thunk
-
-The component logic looks like this:
-![img](https://www.imaginarycloud.com/blog/content/images/2020/06/useEffectFinal-2.png)
-
-
-We need to create a new fetchBreeds action that looks very similar to the logic we previously had in the component:
-
-![img](https://www.imaginarycloud.com/blog/content/images/2020/06/thunk1-3.png)
-
-
-This simple change of location in the code fixes most of the issues we had previously. We’ve abstracted code from the component and we’ve made this specific piece of logic re-usable throughout the entire code base. This information isn’t bound to mounting the component anymore, so now you can issue a new fetchBreeds action and the data will be loaded.
-
-![m](https://www.imaginarycloud.com/blog/content/images/2020/06/thunk2-2.png)
-
-This also enables us to chain Thunks in case need more complicated logic inside our actions. We can also access the state directly, instead of needing selectors. However, you’ll still want to use selectors to make sure that any changes to Redux don’t affect your Thunks
-
-
-In the end, what to pick to handle async operations in Redux?
-Depends on the situation. In the same way you can't use a spoon for everything, the solution has to be chosen based on the problem and not on the other way around.
